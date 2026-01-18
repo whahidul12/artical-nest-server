@@ -3,7 +3,7 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
-import { MongoClient, ServerApiVersion } from "mongodb";
+import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 
 const app = express();
 
@@ -22,7 +22,7 @@ app.use(express.json());
 
 const uri = process.env.DB_URI;
 let client;
-let db, usersCollection, contestsCollection, participatedCollection, submissionsCollection;
+let db, articlesCollection;
 
 let isConnected = false;
 
@@ -44,11 +44,8 @@ const connectDB = async () => {
 
         await client.connect();
 
-        db = client.db("contest_craze_db");
-        usersCollection = db.collection("users_collections");
-        contestsCollection = db.collection("contests_collections");
-        participatedCollection = db.collection("participated_collections");
-        submissionsCollection = db.collection("submissions_collections");
+        db = client.db("article_nest_db");
+        articlesCollection = db.collection("articles_collections");
 
         isConnected = true;
         console.log("MongoDB connected ...");
@@ -83,13 +80,36 @@ app.get("/", (req, res) => {
 });
 
 
-app.get("/users", async (req, res) => {
+app.get("/api/articles", async (req, res) => {
     try {
-        const users = await usersCollection.find().toArray();
-        res.status(200).json(users);
+        const articles = await articlesCollection.find().toArray();
+        res.status(200).json(articles);
     } catch (err) {
         console.error("Error loading users:", err);
-        res.status(500).json({ error: "Failed to load users" });
+        res.status(500).json({ error: "Failed to load articles" });
+    }
+});
+
+
+app.get("/api/articles/:id", async (req, res) => {
+    try {
+        const id = req.params.id;
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid ID format" });
+        }
+
+        // Query the database for a single document matching this ID
+        const query = { _id: new ObjectId(id) };
+        const article = await articlesCollection.findOne(query);
+
+        if (!article) {
+            return res.status(404).json({ error: "Article not found" });
+        }
+
+        res.status(200).json(article);
+    } catch (err) {
+        console.error("Error loading article:", err);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
